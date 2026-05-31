@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#14110D">
+<title>כּוֹחַ — תצוגת דמות (POC)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14110D; --bg2:#1A160F; --card:#211D15; --card2:#272218;
+    --border:#352E20; --border2:#473D2A;
+    --text:#F3EEE2; --muted:#A99E89; --faint:#6F6757;
+    --accent:#F0A035; --accent-hi:#FFBC5A; --accent-dim:#3a2c12;
+    --fig:#ECE4CF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:var(--bg);color:var(--text);
+    font-family:'Rubik',sans-serif;font-size:16px;overflow:hidden;
+    -webkit-font-smoothing:antialiased}
+  /* mannequin.js injects its canvas as position:fixed top:0 left:0 100%/100% */
+
+  .layer{position:fixed;left:0;right:0;z-index:10;pointer-events:none;max-width:520px;
+    margin:0 auto}
+  .top{top:0;padding:18px 20px 14px;
+    background:linear-gradient(180deg,rgba(20,17,13,.96),rgba(20,17,13,0));
+    display:flex;align-items:center;justify-content:space-between}
+  .brand{display:inline-flex;align-items:baseline;gap:8px;font-size:22px;font-weight:900;letter-spacing:.5px}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--accent);
+    box-shadow:0 0 12px var(--accent);align-self:center}
+  .pill{background:var(--card);border:1px solid var(--border);border-radius:999px;
+    padding:6px 11px;font-size:11px;color:var(--accent-hi);font-weight:800;letter-spacing:.3px}
+
+  .note{position:fixed;top:68px;left:16px;right:16px;max-width:520px;margin:0 auto;z-index:10;
+    background:rgba(33,29,21,.92);backdrop-filter:blur(8px);
+    border:1px solid var(--border2);border-radius:13px;padding:12px 14px;
+    color:var(--muted);font-size:12.5px;line-height:1.55;pointer-events:auto}
+  .note b{color:var(--accent-hi);font-weight:800}
+  .note .hint{color:var(--faint);margin-top:6px;display:block;font-size:11.5px}
+
+  .bot{bottom:0;padding:18px 18px 22px;
+    background:linear-gradient(0deg,rgba(20,17,13,.97) 35%,rgba(20,17,13,0))}
+  .card{background:var(--card);border:1px solid var(--border);
+    border-radius:18px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.45);
+    pointer-events:auto}
+  .ex-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .ex-name{font-size:19px;font-weight:800;line-height:1.25}
+  .ex-meta{font-size:12.5px;color:var(--accent);font-weight:700;margin-top:6px}
+  .ex-tip{font-size:13px;color:var(--muted);line-height:1.5;margin-top:8px}
+  .muscle-tag{background:var(--accent-dim);color:var(--accent-hi);
+    font-size:11px;font-weight:800;padding:5px 10px 5px 8px;border-radius:8px;
+    display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .muscle-tag::before{content:'';width:7px;height:7px;border-radius:50%;
+    background:var(--accent);box-shadow:0 0 7px var(--accent)}
+  .ctrl{display:flex;gap:8px;margin-top:12px}
+  .ctrl button{flex:1;background:var(--bg);border:1.5px solid var(--border2);color:var(--text);
+    border-radius:11px;padding:10px;font-family:inherit;font-size:13px;font-weight:700;cursor:pointer}
+  .ctrl button.on{background:var(--accent);color:#1a1409;border-color:var(--accent)}
+  .ctrl button:active{transform:scale(.97)}
+
+  .loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);font-weight:700;background:var(--bg);z-index:20;
+    transition:opacity .35s}
+  .loading.gone{opacity:0;pointer-events:none}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/",
+    "mannequin": "https://cdn.jsdelivr.net/npm/mannequin-js@5.2.3/src/mannequin.js",
+    "mannequin/": "https://cdn.jsdelivr.net/npm/mannequin-js@5.2.3/src/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="loading" class="loading">טוען דמות…</div>
+
+<div class="layer top">
+  <span class="brand">כּוֹחַ <span class="dot"></span></span>
+  <span class="pill">POC · דמות 3D</span>
+</div>
+
+<div class="note">
+  <b>תצוגה מקדימה.</b> זוהי דמות מ-mannequin.js בצבעי האפליקציה. הסקוואט פועם — שאר 30 התרגילים יבנו על אותו דפוס. סרוק עם האצבע על המסך לסיבוב המצלמה.
+  <span class="hint">כדי לחזור לאפליקציה: <a href="/" style="color:var(--accent-hi);text-decoration:none">/</a></span>
+</div>
+
+<div class="layer bot">
+  <div class="card">
+    <div class="ex-head">
+      <div>
+        <div class="ex-name">סקוואט (משקל גוף)</div>
+        <div class="ex-meta">יעד: 10–20</div>
+      </div>
+      <span class="muscle-tag">רגליים</span>
+    </div>
+    <div class="ex-tip">רגליים ברוחב כתפיים. רד עד שהירכיים מקבילות לרצפה.</div>
+    <div class="ctrl">
+      <button id="b-slow">איטי</button>
+      <button id="b-mid" class="on">רגיל</button>
+      <button id="b-fast">מהיר</button>
+      <button id="b-toggle">השהה</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from "three";
+import { Mannequin, getStage, createStage, blend } from "mannequin";
+
+const FIG    = '#ECE4CF';
+const JOINT  = '#A99E89';
+const SHOE   = '#352E20';
+const HEAD   = '#ECE4CF';
+const ACCENT = '#F0A035';
+const ACC_HI = '#FFBC5A';
+const BG     = '#14110D';
+
+const stage = getStage();
+stage.scene.background = new THREE.Color(BG);
+
+// soften the default light, the auto-init goes hard
+stage.light.intensity = 1.6;
+stage.scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+// warm rim light from the right that subtly tints the figure
+const rim = new THREE.DirectionalLight(0xffaa55, 0.6);
+rim.position.set(-4, 2, -3).setLength(15);
+stage.scene.add(rim);
+
+const fig = new Mannequin(false, 1);
+fig.recolor(HEAD, SHOE, FIG, JOINT, FIG, FIG, FIG);
+
+// Highlight working muscles for SQUAT: quads (thighs) + glutes (pelvis)
+fig.pelvis.recolor(ACCENT, ACC_HI);
+fig.l_leg.recolor(ACCENT, ACC_HI);
+fig.r_leg.recolor(ACCENT, ACC_HI);
+
+// --- pose: SQUAT ---
+function poseStanding() {
+  fig.body.turn = -90;          // face the camera (default lib offset = -90)
+  fig.body.position.set(0, 0, 0);
+  fig.torso.bend = 0; fig.torso.turn = 0; fig.torso.tilt = 0;
+  fig.head.nod = -5;
+  fig.l_leg.raise = 0;  fig.l_leg.straddle = 4; fig.l_leg.turn = 0;
+  fig.r_leg.raise = 0;  fig.r_leg.straddle = 4; fig.r_leg.turn = 0;
+  fig.l_knee.bend = 0;  fig.r_knee.bend = 0;
+  fig.l_ankle.bend = 0; fig.r_ankle.bend = 0;
+  fig.l_arm.raise = -75; fig.l_arm.straddle = 0; fig.l_arm.turn = -5;
+  fig.r_arm.raise = -75; fig.r_arm.straddle = 0; fig.r_arm.turn = 5;
+  fig.l_elbow.bend = 12; fig.r_elbow.bend = 12;
+  fig.l_wrist.bend = 0;  fig.r_wrist.bend = 0;
+}
+function poseSquat() {
+  fig.body.turn = -90;
+  fig.body.position.set(0, -0.9, 0);   // hips drop
+  fig.torso.bend = -28;                // lean torso forward
+  fig.torso.turn = 0; fig.torso.tilt = 0;
+  fig.head.nod = -18;
+  fig.l_leg.raise = 70;  fig.l_leg.straddle = 10; fig.l_leg.turn = 0;
+  fig.r_leg.raise = 70;  fig.r_leg.straddle = 10; fig.r_leg.turn = 0;
+  fig.l_knee.bend = 115; fig.r_knee.bend = 115;
+  fig.l_ankle.bend = 22; fig.r_ankle.bend = 22;
+  fig.l_arm.raise = -85; fig.l_arm.straddle = 0; fig.l_arm.turn = -5;
+  fig.r_arm.raise = -85; fig.r_arm.straddle = 0; fig.r_arm.turn = 5;
+  fig.l_elbow.bend = 18; fig.r_elbow.bend = 18;
+  fig.l_wrist.bend = 0;  fig.r_wrist.bend = 0;
+}
+
+// capture both postures as serialised data, then blend
+poseStanding();
+const poseUp = fig.posture;
+poseSquat();
+const poseDown = fig.posture;
+
+// camera: side-front view, looking slightly down
+stage.camera.position.set(2.5, 1.6, 5);
+stage.camera.lookAt(0, 1.0, 0);
+
+// animation state
+let speed = 1.0;     // 1.0 = normal (2.4s cycle)
+let paused = false;
+let lastT = 0;
+let phase = 0;       // 0..1
+
+function setActive(id) {
+  for (const b of document.querySelectorAll('.ctrl button')) b.classList.remove('on');
+  if (id) document.getElementById(id).classList.add('on');
+}
+document.getElementById('b-slow').onclick = () => { speed = 0.55; paused = false; setActive('b-slow'); };
+document.getElementById('b-mid').onclick  = () => { speed = 1.0;  paused = false; setActive('b-mid'); };
+document.getElementById('b-fast').onclick = () => { speed = 1.7;  paused = false; setActive('b-fast'); };
+document.getElementById('b-toggle').onclick = () => {
+  paused = !paused;
+  document.getElementById('b-toggle').textContent = paused ? 'המשך' : 'השהה';
+};
+
+const period = 2.4; // seconds per full down→up cycle at speed=1
+
+createStage((t) => {
+  if (!paused) {
+    const dt = (t - lastT) * speed;
+    phase = (phase + dt / period) % 1;
+  }
+  lastT = t;
+  // triangle wave: 0 → 1 → 0
+  const tri = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+  // ease in/out so it pauses at top and bottom
+  const k = 0.5 - 0.5 * Math.cos(tri * Math.PI);
+  fig.posture = blend(poseUp, poseDown, k);
+});
+
+// hide loader once first frame is rendered
+requestAnimationFrame(() => {
+  setTimeout(() => document.getElementById('loading').classList.add('gone'), 200);
+});
+</script>
+</body>
+</html>
