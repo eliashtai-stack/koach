@@ -244,6 +244,71 @@
 
   .loading{display:flex;align-items:center;justify-content:center;height:100%;
     color:var(--muted);font-weight:700}
+
+  /* ---- plan / picker / catalog ---- */
+  .plan-card{background:var(--card);border:1px solid var(--border);
+    border-radius:16px;padding:14px;margin-bottom:11px;box-shadow:var(--shadow);
+    display:flex;align-items:center;gap:12px;cursor:pointer;
+    transition:transform .1s,border-color .15s}
+  .plan-card:active{transform:scale(.98)}
+  .plan-card .pl-main{flex:1;min-width:0}
+  .plan-card .pl-name{font-size:16px;font-weight:800;color:var(--text)}
+  .plan-card .pl-sub{font-size:12.5px;color:var(--muted);font-weight:600;margin-top:4px}
+  .plan-card.resume{border:1.5px solid var(--accent);background:linear-gradient(180deg,var(--accent-dim),var(--card))}
+  .plan-card.resume .pl-name{color:var(--accent-hi)}
+  .plan-card .pl-icon{width:38px;height:38px;border-radius:50%;flex:none;
+    background:var(--accent-dim);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:900}
+  .plan-actions{display:flex;gap:6px;flex:none}
+  .pa-btn{background:none;border:none;color:var(--faint);font-size:18px;cursor:pointer;
+    padding:6px 8px;font-family:inherit;font-weight:700}
+  .pa-btn:active{color:var(--accent)}
+
+  .ex-row{display:flex;align-items:center;gap:10px;padding:12px 4px;
+    border-bottom:1px solid var(--border);cursor:pointer;font-family:inherit}
+  .ex-row:last-child{border-bottom:none}
+  .ex-row .er-main{flex:1;min-width:0}
+  .ex-row .er-name{font-size:15px;font-weight:700;color:var(--text);line-height:1.3}
+  .ex-row .er-meta{font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
+  .ex-row .er-check{width:24px;height:24px;border-radius:50%;flex:none;
+    border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;
+    color:transparent;font-size:14px;font-weight:900}
+  .ex-row.on .er-check{background:var(--accent);border-color:var(--accent);color:#1a1409}
+  .muscle-section{margin-bottom:14px}
+  .muscle-title{font-size:13px;font-weight:800;color:var(--accent);
+    margin:14px 4px 6px;letter-spacing:.4px;text-transform:uppercase}
+
+  .stepper{display:inline-flex;align-items:center;background:var(--bg);
+    border:1.5px solid var(--border2);border-radius:10px;overflow:hidden;flex:none}
+  .stepper button{background:none;border:none;color:var(--text);
+    width:34px;height:34px;font-size:18px;font-weight:900;cursor:pointer;font-family:inherit}
+  .stepper button:active{background:var(--card2)}
+  .stepper .sv{min-width:34px;text-align:center;font-size:15px;font-weight:800}
+
+  .plan-ex-row{display:flex;align-items:center;gap:10px;padding:11px 0;
+    border-bottom:1px solid var(--border)}
+  .plan-ex-row:last-child{border-bottom:none}
+  .plan-ex-row .pe-main{flex:1;min-width:0}
+  .plan-ex-row .pe-name{font-size:15px;font-weight:700;line-height:1.3}
+  .plan-ex-row .pe-meta{font-size:12px;color:var(--muted);font-weight:600;margin-top:3px}
+  .plan-ex-row .pe-sets{font-size:11.5px;color:var(--faint);font-weight:700;margin-bottom:4px}
+
+  .sub-header{display:flex;align-items:center;gap:10px;margin:2px 2px 14px}
+  .back-btn{background:var(--card);border:1px solid var(--border);color:var(--text);
+    width:36px;height:36px;border-radius:50%;cursor:pointer;font-family:inherit;
+    font-size:18px;font-weight:900;display:flex;align-items:center;justify-content:center;flex:none}
+  .back-btn:active{transform:scale(.95)}
+  .sub-title{font-size:17px;font-weight:800;flex:1;min-width:0}
+
+  .empty-cta{text-align:center;padding:22px 12px;color:var(--muted);font-size:13.5px;line-height:1.6}
+  .empty-cta .big{font-size:30px;margin-bottom:6px;opacity:.55}
+
+  textarea.tip-input{width:100%;background:var(--bg);color:var(--text);
+    border:1.5px solid var(--border2);border-radius:12px;
+    padding:13px;font-size:15px;font-weight:500;font-family:inherit;
+    min-height:84px;resize:vertical;line-height:1.5}
+  textarea.tip-input:focus{outline:none;border-color:var(--accent);
+    box-shadow:0 0 0 3px rgba(240,160,53,.15)}
 </style>
 </head>
 <body>
@@ -276,25 +341,92 @@ const storage = window.storage || (() => {
     delete: async k => { delete mem[k]; return {key:k,deleted:true}; },
   };
 })();
-const KEYS={workouts:'koach:workouts',meas:'koach:measurements',profile:'koach:profile',draft:'koach:draft'};
+const KEYS={workouts:'koach:workouts',meas:'koach:measurements',profile:'koach:profile',
+  draft:'koach:draft',plans:'koach:plans',customExercises:'koach:customExercises',session:'koach:session'};
 async function loadKey(k,fb){try{const r=await storage.get(k);return r&&r.value?JSON.parse(r.value):fb;}catch(e){return fb;}}
 async function saveKey(k,v){try{await storage.set(k,JSON.stringify(v));return true;}catch(e){console.error(e);return false;}}
 
 /* ---------------- data ---------------- */
-const EXERCISES=[
-  {id:'pullup',name:'עליות מתח / שלילית',unit:'חזרות',range:'יעד: 6–12',
+const MUSCLES=['חזה','גב','רגליים','כתפיים','זרועות','ליבה'];
+const EQUIPMENTS=['משקל גוף','משקולות','מתח'];
+const UNITS=['חזרות','שניות'];
+const BUILTIN_EXERCISES=[
+  // existing 6 (keep ids — historical workouts reference them)
+  {id:'pullup',name:'עליות מתח / שלילית',muscle:'גב',equipment:'מתח',unit:'חזרות',range:'יעד: 6–12',
    tip:'משיכה — גב רחב. אם אין מתח מלא: ירידה איטית 3–5 שניות.'},
-  {id:'pushup',name:'שכיבות סמיכה',unit:'חזרות',range:'יעד: 8–15',
+  {id:'pushup',name:'שכיבות סמיכה',muscle:'חזה',equipment:'משקל גוף',unit:'חזרות',range:'יעד: 8–15',
    tip:'דחיפה — חזה וטריצפס. נעשה קל? הגבה רגליים על כיסא.'},
-  {id:'squat',name:'סקוואט בולגרי',unit:'חזרות',range:'יעד: 8–15 לכל רגל',
+  {id:'squat',name:'סקוואט בולגרי',muscle:'רגליים',equipment:'משקל גוף',unit:'חזרות',range:'יעד: 8–15 לכל רגל',
    tip:'רגליים. רגל אחורית על כיסא. רשום חזרות לכל רגל.'},
-  {id:'row',name:'חתירה הפוכה',unit:'חזרות',range:'יעד: 8–12',
+  {id:'row',name:'חתירה הפוכה',muscle:'גב',equipment:'מתח',unit:'חזרות',range:'יעד: 8–12',
    tip:'עובי הגב. מתחת לשולחן יציב, גוף ישר כמו קרש.'},
-  {id:'plank',name:'פלאנק',unit:'שניות',range:'החזק עד כשל',
+  {id:'plank',name:'פלאנק',muscle:'ליבה',equipment:'משקל גוף',unit:'שניות',range:'החזק עד כשל',
    tip:'ליבה. גוף ישר, בלי לשקוע במותן. נשום רגיל.'},
-  {id:'calf',name:'מתח שוקיים',unit:'חזרות',range:'יעד: 15–20',
+  {id:'calf',name:'מתח שוקיים',muscle:'רגליים',equipment:'משקל גוף',unit:'חזרות',range:'יעד: 15–20',
    tip:'שוק. על מדרגה לטווח מלא, ירידה איטית.'},
+  // חזה
+  {id:'pushup_wide',name:'שכיבות סמיכה רחבות',muscle:'חזה',equipment:'משקל גוף',unit:'חזרות',
+   tip:'ידיים רחבות מהכתפיים. עומס גדול יותר על שריר החזה החיצוני.'},
+  {id:'pushup_diamond',name:'שכיבות סמיכה יהלום',muscle:'חזה',equipment:'משקל גוף',unit:'חזרות',
+   tip:'אגודלים ואצבעות יוצרים יהלום. עומס על טריצפס וחזה פנימי.'},
+  {id:'dips',name:'דיפס מקבילים',muscle:'חזה',equipment:'מתח',unit:'חזרות',
+   tip:'בין שני כיסאות או על מקבילים. רד עד 90 מעלות במרפק.'},
+  {id:'db_press',name:'לחיצת חזה (משקולות)',muscle:'חזה',equipment:'משקולות',unit:'חזרות',
+   tip:'שכיבה על ספסל או על הגב. הורד עד גובה החזה ודחוף.'},
+  // גב
+  {id:'chinup',name:'מתח באחיזה הפוכה',muscle:'גב',equipment:'מתח',unit:'חזרות',
+   tip:'כפות יד פונות פנימה. עומס גם על הביצפס.'},
+  {id:'db_row',name:'חתירה במשקולת',muscle:'גב',equipment:'משקולות',unit:'חזרות',
+   tip:'יד אחת על ספסל/ברך. משוך משקולת עד צד הבטן, מרפק צמוד.'},
+  {id:'superman',name:'סופרמן',muscle:'גב',equipment:'משקל גוף',unit:'שניות',
+   tip:'שכיבה על הבטן. הרם ידיים ורגליים בו-זמנית והחזק.'},
+  // רגליים
+  {id:'squat_bw',name:'סקוואט (משקל גוף)',muscle:'רגליים',equipment:'משקל גוף',unit:'חזרות',
+   tip:'רגליים ברוחב כתפיים. רד עד שהירכיים מקבילות לרצפה.'},
+  {id:'lunge',name:'לאנג׳ים',muscle:'רגליים',equipment:'משקל גוף',unit:'חזרות',
+   tip:'צעד גדול קדימה, ירידה עד שברך אחורית כמעט נוגעת ברצפה. החלף רגליים.'},
+  {id:'glute_bridge',name:'גשר ישבן',muscle:'רגליים',equipment:'משקל גוף',unit:'חזרות',
+   tip:'שכיבה על הגב, ברכיים כפופות. הרם את האגן עד קו ישר מהברכיים לכתפיים.'},
+  {id:'wall_sit',name:'ישיבת קיר',muscle:'רגליים',equipment:'משקל גוף',unit:'שניות',
+   tip:'גב לקיר, ירכיים מקבילות לרצפה כאילו יושב על כיסא. החזק.'},
+  // כתפיים
+  {id:'pike_pushup',name:'שכיבות סמיכה פייק',muscle:'כתפיים',equipment:'משקל גוף',unit:'חזרות',
+   tip:'אגן גבוה (משולש הפוך). דחוף כלפי מעלה — עומס על דלתואיד קדמי.'},
+  {id:'db_press_shoulder',name:'לחיצת כתפיים',muscle:'כתפיים',equipment:'משקולות',unit:'חזרות',
+   tip:'משקולות בגובה הכתפיים. דחוף מעלה עד מרפקים כמעט ישרים.'},
+  {id:'lateral_raise',name:'הרחקת זרועות לצדדים',muscle:'כתפיים',equipment:'משקולות',unit:'חזרות',
+   tip:'משקולות לצדי הגוף. הרם לצדדים עד גובה הכתפיים, מרפקים מעט כפופים.'},
+  {id:'front_raise',name:'הרמה קדמית',muscle:'כתפיים',equipment:'משקולות',unit:'חזרות',
+   tip:'משקולות מול הירכיים. הרם קדימה עד גובה הכתפיים, ידיים ישרות.'},
+  // זרועות
+  {id:'db_curl',name:'כפיפת מרפק (ביצפס)',muscle:'זרועות',equipment:'משקולות',unit:'חזרות',
+   tip:'משקולת בכל יד, מרפק צמוד לגוף. כופף עד הכתף ורד באיטיות.'},
+  {id:'tricep_dip_chair',name:'דיפס טריצפס על כיסא',muscle:'זרועות',equipment:'משקל גוף',unit:'חזרות',
+   tip:'גב לכיסא, ידיים על קצה הכיסא. רד וצא — דגש על טריצפס.'},
+  {id:'hammer_curl',name:'כפיפת פטיש',muscle:'זרועות',equipment:'משקולות',unit:'חזרות',
+   tip:'משקולות בידיים, כפות יד פונות פנימה לאורך כל התנועה.'},
+  {id:'overhead_ext',name:'מתיחת טריצפס מעל הראש',muscle:'זרועות',equipment:'משקולות',unit:'חזרות',
+   tip:'משקולת בשתי ידיים מעל הראש. כופף מרפקים מאחורי הראש ויישר.'},
+  // ליבה
+  {id:'crunch',name:'כפיפות בטן',muscle:'ליבה',equipment:'משקל גוף',unit:'חזרות',
+   tip:'שכיבה על הגב, ברכיים כפופות. הרם רק את הכתפיים, סנטר רחוק מהחזה.'},
+  {id:'leg_raise',name:'הרמת רגליים',muscle:'ליבה',equipment:'משקל גוף',unit:'חזרות',
+   tip:'שכיבה על הגב. הרם רגליים ישרות עד 90 מעלות והורד בשליטה.'},
+  {id:'side_plank',name:'פלאנק צד',muscle:'ליבה',equipment:'משקל גוף',unit:'שניות',
+   tip:'על הצד, נשען על מרפק אחד. גוף ישר כקרש. החזק לכל צד.'},
+  {id:'mountain_climber',name:'מטפסי הר',muscle:'ליבה',equipment:'משקל גוף',unit:'חזרות',
+   tip:'תנוחת שכיבת סמיכה. הבא ברכיים לחזה לסירוגין במהירות.'},
+  {id:'russian_twist',name:'סיבובי בטן רוסיים',muscle:'ליבה',equipment:'משקל גוף',unit:'חזרות',
+   tip:'ישיבה על הישבן, רגליים מורמות. סובב פלג גוף עליון מצד לצד.'},
 ];
+// IDs that have an animated SVG demo
+const DEMO_IDS=new Set(['pullup','pushup','squat','row','plank','calf']);
+// The default plan seeded on first run — replicates the original 6-exercise workout
+const DEFAULT_PLAN={id:'default',name:'אימון גוף-מלא',
+  exercises:[
+    {exId:'pullup',sets:3},{exId:'pushup',sets:3},{exId:'squat',sets:3},
+    {exId:'row',sets:3},{exId:'plank',sets:3},{exId:'calf',sets:3},
+  ]};
 const METRICS=[
   {id:'weight',label:'משקל',unit:'ק״ג'},
   {id:'arm',label:'זרוע',unit:'ס״מ'},
@@ -305,8 +437,15 @@ const METRICS=[
 ];
 
 let S={screen:'workout',workouts:[],meas:[],profile:{height:null},
-  draft:{},chartMetric:'weight',exStep:0,
+  chartMetric:'weight',
+  plans:[],customExercises:[],
+  session:null,           // {planName, exercises:[{exId,sets}], values:{exId:[..]}, step}
+  draftPlan:null,         // {id|null, name, exercises:[{exId,sets}], mode:'plan'|'free'}
+  exFormDraft:null,       // {name, muscle, equipment, unit, tip}
+  pickerFilter:'all',     // muscle filter for the catalog picker
   timer:{running:false,remaining:0,total:0,iv:null}};
+
+const WORKOUT_SCREENS=new Set(['workout','session','planEditor','exercisePicker','customExForm']);
 
 /* ---------------- helpers ---------------- */
 const $=s=>document.querySelector(s);
@@ -330,7 +469,35 @@ function beep(){
     o.start();o.stop(C.currentTime+.7);}catch(e){}
 }
 
-/* ---------------- timer ---------------- */
+/* ---------------- catalog / plans / session ---------------- */
+function catalog(){return [...BUILTIN_EXERCISES, ...S.customExercises];}
+function getEx(id){return catalog().find(x=>x.id===id);}
+function genId(prefix){return prefix+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function blankSets(n){return Array.from({length:n},()=>'');}
+function emptyDraftPlan(mode){
+  return {id:null,name:mode==='free'?'אימון חופשי':'',
+    exercises:[],mode:mode||'plan'};
+}
+function startSession(planOrSpec,planName){
+  // planOrSpec: array of {exId,sets} (snapshot at start)
+  const exs=planOrSpec.map(e=>({exId:e.exId,sets:Math.max(1,e.sets|0||3)}));
+  const values={};
+  exs.forEach(e=>values[e.exId]=blankSets(e.sets));
+  S.session={planName:planName||'אימון',exercises:exs,values,step:0};
+  return saveKey(KEYS.session,S.session);
+}
+async function clearSession(){
+  S.session=null;
+  await storage.delete(KEYS.session).catch(()=>{});
+}
+function curSessionEx(){
+  if(!S.session)return null;
+  const e=S.session.exercises[S.session.step];
+  if(!e)return null;
+  const full=getEx(e.exId);
+  if(!full)return null;
+  return {...full,sets:e.sets,exId:e.exId};
+}
 function startTimer(sec){
   stopTimer();
   S.timer.running=true;S.timer.remaining=sec;S.timer.total=sec;
@@ -339,8 +506,9 @@ function startTimer(sec){
     if(S.timer.remaining<=0){
       stopTimer();beep();
       if(navigator.vibrate)navigator.vibrate([220,120,220]);
-      if(S.profile.autoNext!==false && S.exStep<EXERCISES.length-1){
-        S.exStep++;S.screen='workout';render();
+      if(S.profile.autoNext!==false && S.session && S.session.step<S.session.exercises.length-1){
+        S.session.step++;saveKey(KEYS.session,S.session);
+        S.screen='session';render();
         toast('מנוחה הסתיימה — התרגיל הבא');
       }else{
         paintTimer();
@@ -519,50 +687,236 @@ function DEMO(id){
 
 /* ---------------- screens ---------------- */
 function renderWorkout(){
-  const prev=S.workouts.length?S.workouts[S.workouts.length-1]:null;
-  const i=Math.max(0,Math.min(EXERCISES.length-1,S.exStep));
-  const ex=EXERCISES[i];
-  const d=S.draft[ex.id]||['','',''];
-  const pv=prev&&prev.ex[ex.id]?prev.ex[ex.id]:null;
+  let html='<div class="scr-title">אימון</div>';
+  if(S.session){
+    const N=S.session.exercises.length;
+    const cur=S.session.step+1;
+    html+=`<div class="plan-card resume" data-act="resumeSession">
+      <div class="pl-icon">▶</div>
+      <div class="pl-main">
+        <div class="pl-name">המשך אימון</div>
+        <div class="pl-sub">${esc(S.session.planName)} · תרגיל ${cur} מתוך ${N}</div>
+      </div>
+      <div class="plan-actions">
+        <button class="pa-btn" data-act="cancelSession" aria-label="בטל אימון">×</button>
+      </div>
+    </div>`;
+  }
+  html+='<div class="scr-title" style="margin-top:18px">תוכניות אימון</div>';
+  if(!S.plans.length){
+    html+=`<div class="empty-cta"><div class="big">📋</div>
+      עדיין אין תוכניות אימון.<br>צור תוכנית חדשה או התחל אימון חופשי.</div>`;
+  }else{
+    S.plans.forEach(p=>{
+      const totalSets=p.exercises.reduce((s,e)=>s+(e.sets|0),0);
+      html+=`<div class="plan-card" data-act="startPlan" data-id="${esc(p.id)}">
+        <div class="pl-icon">💪</div>
+        <div class="pl-main">
+          <div class="pl-name">${esc(p.name)}</div>
+          <div class="pl-sub">${p.exercises.length} תרגילים · ${totalSets} סטים</div>
+        </div>
+        <div class="plan-actions">
+          <button class="pa-btn" data-act="editPlan" data-id="${esc(p.id)}" aria-label="ערוך">✏</button>
+          <button class="pa-btn" data-act="delPlan" data-id="${esc(p.id)}" aria-label="מחק">×</button>
+        </div>
+      </div>`;
+    });
+  }
+  html+=`<button class="btn" data-act="newPlan" style="margin-top:14px">+ צור תוכנית חדשה</button>
+    <button class="btn sec" data-act="freeWorkout" style="margin-top:10px">אימון חופשי</button>`;
+  return html;
+}
+
+function renderSession(){
+  if(!S.session){return '<div class="empty">אין אימון פעיל.</div>';}
+  const sess=S.session;
+  const N=sess.exercises.length;
+  const i=Math.max(0,Math.min(N-1,sess.step));
+  const slot=sess.exercises[i];
+  const ex=getEx(slot.exId);
+  if(!ex){
+    // exercise was deleted from catalog — skip gracefully
+    return `<div class="card"><div class="empty">תרגיל לא נמצא במאגר. <br>
+      <button class="btn sec" data-act="nextStep" style="margin-top:12px">דלג</button></div></div>`;
+  }
+  const vals=sess.values[slot.exId]||blankSets(slot.sets);
+  // ensure values array length matches sets count
+  while(vals.length<slot.sets)vals.push('');
+  sess.values[slot.exId]=vals;
+  // find previous workout's record of this exercise for comparison
+  const prev=[...S.workouts].reverse().find(w=>w.ex&&w.ex[slot.exId]);
+  const pv=prev?prev.ex[slot.exId]:null;
   let sets='';
-  for(let k=0;k<3;k++){
-    const cur=parseInt(d[k]),pp=pv?parseInt(pv[k]):NaN;
+  for(let k=0;k<slot.sets;k++){
+    const cur=parseInt(vals[k]),pp=pv?parseInt(pv[k]):NaN;
     const beat=!isNaN(cur)&&!isNaN(pp)&&cur>pp;
     sets+=`<div class="set">
       <label>סט ${k+1}</label>
-      <input type="number" inputmode="numeric" data-ex="${ex.id}" data-set="${k}"
-        value="${d[k]||''}" placeholder="–">
-      <span class="prev ${beat?'beat':''}">${pv?'קודם: '+(pv[k]||'–'):' '}</span>
+      <input type="number" inputmode="numeric" data-ex="${esc(slot.exId)}" data-set="${k}"
+        value="${esc(vals[k]||'')}" placeholder="–">
+      <span class="prev ${beat?'beat':''}">${pv?'קודם: '+(pv[k]!=null?esc(pv[k]||'–'):'–'):' '}</span>
     </div>`;
   }
+  // dynamic grid columns based on sets count
+  const cols=Math.min(slot.sets,4);
+  const setsStyle=`grid-template-columns:repeat(${cols},1fr)`;
   let segs='';
-  EXERCISES.forEach((_,s)=>{
-    const cls=s===i?'on':(S.draft[EXERCISES[s].id]&&S.draft[EXERCISES[s].id].some(v=>v!=='')?'done':'');
+  sess.exercises.forEach((slt,s)=>{
+    const filled=(sess.values[slt.exId]||[]).some(v=>v!=='');
+    const cls=s===i?'on':(filled?'done':'');
     segs+=`<div class="seg ${cls}" data-act="goStep" data-i="${s}"></div>`;
   });
-  const last=i===EXERCISES.length-1;
+  const last=i===N-1;
   return `
     <div class="wk-top">
-      <div class="wk-count">תרגיל ${i+1} מתוך ${EXERCISES.length} · אימון גוף־מלא</div>
+      <div class="wk-count">תרגיל ${i+1} מתוך ${N} · ${esc(sess.planName)}</div>
       <div class="segs">${segs}</div>
     </div>
     <div class="card tight timer-card" id="timerBox"></div>
     <div class="card">
       <div class="ex-head">
-        <div><div class="ex-name">${ex.name}</div>
-        <div class="ex-meta">${ex.range}</div></div>
-        <span class="ex-badge">${ex.unit}</span>
+        <div><div class="ex-name">${esc(ex.name)}</div>
+        ${ex.range?`<div class="ex-meta">${esc(ex.range)}</div>`:''}
+        </div>
+        <span class="ex-badge">${esc(ex.unit)}</span>
       </div>
-      <div class="ex-tip">${ex.tip}</div>
-      ${DEMO(ex.id)}
-      <div class="sets">${sets}</div>
+      <div class="ex-tip">${esc(ex.tip||'')}</div>
+      ${DEMO_IDS.has(ex.id)?DEMO(ex.id):''}
+      <div class="sets" style="${setsStyle}">${sets}</div>
     </div>
     <div class="wk-nav">
       ${i>0?`<button class="btn sec" data-act="prevStep">הקודם</button>`:''}
       <button class="btn" data-act="${last?'finish':'nextStep'}">${last?'סיים ושמור 💪':'התרגיל הבא ←'}</button>
     </div>
-    ${prev?`<div style="text-align:center;color:var(--faint);font-size:12px;margin-top:14px">
-      האימון הקודם נשמר ב־${fmtDate(prev.ts)}</div>`:''}`;
+    <div style="text-align:center;margin-top:14px">
+      <button class="pa-btn" data-act="cancelSession" style="color:var(--faint);font-size:13px">בטל אימון</button>
+    </div>`;
+}
+
+function renderPlanEditor(){
+  const dp=S.draftPlan;
+  if(!dp)return '<div class="empty">…</div>';
+  const isFree=dp.mode==='free';
+  const title=isFree?'אימון חופשי':(dp.id?'עריכת תוכנית':'תוכנית חדשה');
+  let exRows='';
+  if(!dp.exercises.length){
+    exRows=`<div class="empty-cta"><div class="big">＋</div>
+      ${isFree?'בחר תרגילים לאימון':'הוסף תרגילים לתוכנית'}</div>`;
+  }else{
+    dp.exercises.forEach((e,idx)=>{
+      const full=getEx(e.exId);
+      const nm=full?full.name:'(תרגיל חסר)';
+      const meta=full?`${full.muscle} · ${full.equipment}`:'';
+      exRows+=`<div class="plan-ex-row">
+        <div class="pe-main">
+          <div class="pe-name">${esc(nm)}</div>
+          <div class="pe-meta">${esc(meta)}</div>
+        </div>
+        <div>
+          <div class="pe-sets" style="text-align:center">סטים</div>
+          <div class="stepper">
+            <button data-act="setMinus" data-i="${idx}">−</button>
+            <span class="sv">${e.sets}</span>
+            <button data-act="setPlus" data-i="${idx}">+</button>
+          </div>
+        </div>
+        <button class="pa-btn" data-act="removeFromPlan" data-i="${idx}" aria-label="הסר">×</button>
+      </div>`;
+    });
+  }
+  const nameField=isFree?'':`<div class="field">
+    <label>שם התוכנית</label>
+    <input type="text" id="planName" value="${esc(dp.name)}" placeholder="למשל: יום דחיפה" maxlength="40">
+  </div>`;
+  const saveLabel=isFree?'התחל אימון 💪':(dp.id?'שמור':'צור תוכנית');
+  return `<div class="sub-header">
+      <button class="back-btn" data-act="backToPicker" aria-label="חזור">←</button>
+      <div class="sub-title">${title}</div>
+    </div>
+    <div class="card">${nameField}
+      ${exRows}
+      <button class="btn sec" data-act="openExPicker" style="margin-top:14px">+ הוסף תרגיל</button>
+    </div>
+    <button class="btn" data-act="savePlan" ${dp.exercises.length?'':'disabled'}>${saveLabel}</button>`;
+}
+
+function renderExercisePicker(){
+  const filter=S.pickerFilter||'all';
+  const list=catalog().filter(x=>filter==='all'||x.muscle===filter);
+  // group by muscle
+  const groups={};
+  list.forEach(x=>{(groups[x.muscle]=groups[x.muscle]||[]).push(x);});
+  const filterChips=['all',...MUSCLES].map(m=>{
+    const lbl=m==='all'?'הכל':m;
+    return `<button class="chip ${filter===m?'on':''}" data-act="pickerFilter" data-m="${esc(m)}">${esc(lbl)}</button>`;
+  }).join('');
+  let body='';
+  const selectedIds=new Set((S.draftPlan?.exercises||[]).map(e=>e.exId));
+  const order=MUSCLES;
+  order.forEach(m=>{
+    if(!groups[m])return;
+    body+=`<div class="muscle-section"><div class="muscle-title">${esc(m)}</div>`;
+    groups[m].forEach(x=>{
+      const on=selectedIds.has(x.id);
+      body+=`<div class="ex-row ${on?'on':''}" data-act="toggleEx" data-id="${esc(x.id)}">
+        <div class="er-main">
+          <div class="er-name">${esc(x.name)}${x.custom?' <span style="color:var(--faint);font-weight:600;font-size:11px">(אישי)</span>':''}</div>
+          <div class="er-meta">${esc(x.equipment)} · ${esc(x.unit)}</div>
+        </div>
+        <div class="er-check">✓</div>
+      </div>`;
+    });
+    body+='</div>';
+  });
+  if(!list.length){
+    body=`<div class="empty-cta"><div class="big">🔎</div>אין תרגילים בקטגוריה זו.</div>`;
+  }
+  return `<div class="sub-header">
+      <button class="back-btn" data-act="backToEditor" aria-label="חזור">←</button>
+      <div class="sub-title">בחר תרגילים</div>
+    </div>
+    <div class="chips">${filterChips}</div>
+    <div class="card">${body}</div>
+    <button class="btn sec" data-act="openCustomForm" style="margin-top:10px">+ הוסף תרגיל אישי</button>
+    <button class="btn" data-act="backToEditor" style="margin-top:10px">סיום</button>`;
+}
+
+function renderCustomExForm(){
+  const d=S.exFormDraft||{name:'',muscle:MUSCLES[0],equipment:EQUIPMENTS[0],unit:UNITS[0],tip:''};
+  const muscleChips=MUSCLES.map(m=>
+    `<button class="chip ${d.muscle===m?'on':''}" data-act="cfMuscle" data-v="${esc(m)}">${esc(m)}</button>`).join('');
+  const eqChips=EQUIPMENTS.map(m=>
+    `<button class="chip ${d.equipment===m?'on':''}" data-act="cfEquipment" data-v="${esc(m)}">${esc(m)}</button>`).join('');
+  const unitChips=UNITS.map(m=>
+    `<button class="chip ${d.unit===m?'on':''}" data-act="cfUnit" data-v="${esc(m)}">${esc(m)}</button>`).join('');
+  return `<div class="sub-header">
+      <button class="back-btn" data-act="backFromCustom" aria-label="חזור">←</button>
+      <div class="sub-title">תרגיל אישי</div>
+    </div>
+    <div class="card">
+      <div class="field">
+        <label>שם התרגיל</label>
+        <input type="text" id="cfName" value="${esc(d.name)}" maxlength="60" placeholder="למשל: כפיפת בטן צד">
+      </div>
+      <div class="field">
+        <label>קבוצת שריר ראשית</label>
+        <div class="chips" style="margin-bottom:0">${muscleChips}</div>
+      </div>
+      <div class="field">
+        <label>ציוד נדרש</label>
+        <div class="chips" style="margin-bottom:0">${eqChips}</div>
+      </div>
+      <div class="field">
+        <label>יחידה</label>
+        <div class="chips" style="margin-bottom:0">${unitChips}</div>
+      </div>
+      <div class="field">
+        <label>הוראות ביצוע</label>
+        <textarea class="tip-input" id="cfTip" maxlength="240"
+          placeholder="טיפ קצר על תנוחה / טווח / נשימה">${esc(d.tip)}</textarea>
+      </div>
+      <button class="btn" data-act="saveCustomEx">שמור תרגיל</button>
+    </div>`;
 }
 
 function renderMeasure(){
@@ -618,12 +972,13 @@ function renderProgress(){
   METRICS.forEach(m=>{
     chips+=`<button class="chip ${m.id===S.chartMetric?'on':''}" data-act="metric" data-m="${m.id}">${m.label}</button>`;
   });
-  // workout volume
+  // workout volume: total reps per workout (skip timed exercises)
   const vol=S.workouts.map(w=>{
     let t=0;
-    EXERCISES.forEach(ex=>{
-      if(ex.id==='plank')return;
-      (w.ex[ex.id]||[]).forEach(r=>{const n=parseInt(r);if(!isNaN(n))t+=n;});
+    Object.keys(w.ex||{}).forEach(exId=>{
+      const ex=getEx(exId);
+      if(ex&&ex.unit&&ex.unit!=='חזרות')return;
+      (w.ex[exId]||[]).forEach(r=>{const n=parseInt(r);if(!isNaN(n))t+=n;});
     });
     return {label:fmtDate(w.ts),value:t};
   });
@@ -731,46 +1086,58 @@ const NAV=[
   {id:'target',label:'יעד',icon:'M12 12m-9 0a9 9 0 1 0 18 0a9 9 0 1 0-18 0M12 12m-4.5 0a4.5 4.5 0 1 0 9 0a4.5 4.5 0 1 0-9 0M12 12h.01'},
 ];
 function renderNav(){
+  const active=id=>id==='workout'?WORKOUT_SCREENS.has(S.screen):S.screen===id;
   $('#nav').innerHTML=NAV.map(n=>`
-    <button class="nav-item ${S.screen===n.id?'on':''}" data-act="nav" data-s="${n.id}">
+    <button class="nav-item ${active(n.id)?'on':''}" data-act="nav" data-s="${n.id}">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
         stroke-linecap="round" stroke-linejoin="round"><path d="${n.icon}"/></svg>
       <span>${n.label}</span></button>`).join('');
 }
 function render(){
   $('#weekPill').innerHTML=`השבוע <b>${weekCount()}</b>/3`;
-  const map={workout:renderWorkout,measure:renderMeasure,progress:renderProgress,target:renderTarget,settings:renderSettings};
-  $('#screen').innerHTML=map[S.screen]();
+  const map={workout:renderWorkout,session:renderSession,
+    planEditor:renderPlanEditor,exercisePicker:renderExercisePicker,customExForm:renderCustomExForm,
+    measure:renderMeasure,progress:renderProgress,target:renderTarget,settings:renderSettings};
+  const fn=map[S.screen]||renderWorkout;
+  $('#screen').innerHTML=fn();
   $('#screen').scrollTop=0;
   renderNav();
-  if(S.screen==='workout')paintTimer();
+  if(S.screen==='session')paintTimer();
 }
 
 /* ---------------- actions ---------------- */
 let draftTimer=null;
 document.addEventListener('input',e=>{
   const t=e.target;
-  if(t.dataset.ex!=null){
+  if(t.dataset.ex!=null && S.session){
     const id=t.dataset.ex,si=+t.dataset.set;
-    if(!S.draft[id])S.draft[id]=['','',''];
-    S.draft[id][si]=t.value;
+    if(!S.session.values[id])S.session.values[id]=[];
+    while(S.session.values[id].length<=si)S.session.values[id].push('');
+    S.session.values[id][si]=t.value;
     clearTimeout(draftTimer);
-    draftTimer=setTimeout(()=>saveKey(KEYS.draft,S.draft),700);
+    draftTimer=setTimeout(()=>saveKey(KEYS.session,S.session),700);
+    return;
   }
+  // Live-sync editor text fields so a re-render (chip / stepper click) doesn't wipe them.
+  if(t.id==='planName' && S.draftPlan){S.draftPlan.name=t.value;return;}
+  if(t.id==='cfName' && S.exFormDraft){S.exFormDraft.name=t.value;return;}
+  if(t.id==='cfTip' && S.exFormDraft){S.exFormDraft.tip=t.value;return;}
 });
 document.addEventListener('click',async e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const a=b.dataset.act;
 
-  if(a==='nav'){S.screen=b.dataset.s;render();return;}
+  if(a==='nav'){
+    // Tapping the workout tab always lands on the picker (per UX decision).
+    S.screen=b.dataset.s;
+    if(b.dataset.s==='workout'){/* picker is the workout screen */}
+    render();return;
+  }
   if(a==='t60'){startTimer(60);return;}
   if(a==='t90'){startTimer(90);return;}
   if(a==='t120'){startTimer(120);return;}
   if(a==='tstop'){stopTimer();paintTimer();return;}
   if(a==='metric'){S.chartMetric=b.dataset.m;render();return;}
-  if(a==='nextStep'){S.exStep=Math.min(EXERCISES.length-1,S.exStep+1);render();return;}
-  if(a==='prevStep'){S.exStep=Math.max(0,S.exStep-1);render();return;}
-  if(a==='goStep'){S.exStep=+b.dataset.i;render();return;}
   if(a==='settings'){S.screen='settings';render();return;}
   if(a==='theme'){
     S.profile.theme=b.dataset.v;applyTheme();
@@ -781,20 +1148,164 @@ document.addEventListener('click',async e=>{
     await saveKey(KEYS.profile,S.profile);render();return;
   }
 
-  if(a==='finish'){
+  /* ---- session step navigation ---- */
+  if(a==='nextStep'&&S.session){
+    S.session.step=Math.min(S.session.exercises.length-1,S.session.step+1);
+    await saveKey(KEYS.session,S.session);render();return;
+  }
+  if(a==='prevStep'&&S.session){
+    S.session.step=Math.max(0,S.session.step-1);
+    await saveKey(KEYS.session,S.session);render();return;
+  }
+  if(a==='goStep'&&S.session){
+    S.session.step=+b.dataset.i;
+    await saveKey(KEYS.session,S.session);render();return;
+  }
+
+  /* ---- picker / plan management ---- */
+  if(a==='startPlan'){
+    const p=S.plans.find(x=>x.id===b.dataset.id);
+    if(!p){toast('תוכנית לא נמצאה');return;}
+    await startSession(p.exercises,p.name);
+    S.screen='session';render();return;
+  }
+  if(a==='resumeSession'){
+    if(S.session){S.screen='session';render();}
+    return;
+  }
+  if(a==='cancelSession'){
+    if(!confirm('לבטל את האימון הנוכחי? הסטים שמילאת יימחקו.'))return;
+    await clearSession();stopTimer();
+    S.screen='workout';render();
+    return;
+  }
+  if(a==='newPlan'){
+    S.draftPlan=emptyDraftPlan('plan');
+    S.screen='planEditor';render();return;
+  }
+  if(a==='freeWorkout'){
+    S.draftPlan=emptyDraftPlan('free');
+    S.screen='planEditor';render();return;
+  }
+  if(a==='editPlan'){
+    const p=S.plans.find(x=>x.id===b.dataset.id);
+    if(!p){toast('תוכנית לא נמצאה');return;}
+    S.draftPlan={id:p.id,name:p.name,
+      exercises:p.exercises.map(e=>({...e})),mode:'plan'};
+    S.screen='planEditor';render();return;
+  }
+  if(a==='delPlan'){
+    if(!confirm('למחוק את התוכנית?'))return;
+    S.plans=S.plans.filter(p=>p.id!==b.dataset.id);
+    await saveKey(KEYS.plans,S.plans);
+    toast('התוכנית נמחקה');render();return;
+  }
+
+  /* ---- plan editor actions ---- */
+  if(a==='backToPicker'){
+    S.draftPlan=null;S.screen='workout';render();return;
+  }
+  if(a==='setPlus'&&S.draftPlan){
+    const i=+b.dataset.i;
+    S.draftPlan.exercises[i].sets=Math.min(20,S.draftPlan.exercises[i].sets+1);
+    render();return;
+  }
+  if(a==='setMinus'&&S.draftPlan){
+    const i=+b.dataset.i;
+    S.draftPlan.exercises[i].sets=Math.max(1,S.draftPlan.exercises[i].sets-1);
+    render();return;
+  }
+  if(a==='removeFromPlan'&&S.draftPlan){
+    const i=+b.dataset.i;
+    S.draftPlan.exercises.splice(i,1);render();return;
+  }
+  if(a==='openExPicker'){
+    // persist the name before navigating away
+    const nm=document.getElementById('planName');
+    if(nm&&S.draftPlan&&S.draftPlan.mode!=='free')S.draftPlan.name=nm.value;
+    S.screen='exercisePicker';render();return;
+  }
+  if(a==='savePlan'&&S.draftPlan){
+    const dp=S.draftPlan;
+    if(!dp.exercises.length){toast('הוסף לפחות תרגיל אחד');return;}
+    if(dp.mode==='free'){
+      // start a session immediately, do not save as a plan
+      await startSession(dp.exercises,'אימון חופשי');
+      S.draftPlan=null;S.screen='session';render();
+      return;
+    }
+    const nm=document.getElementById('planName');
+    if(nm)dp.name=nm.value;
+    const name=(dp.name||'').trim()||'תוכנית ללא שם';
+    if(dp.id){
+      const idx=S.plans.findIndex(p=>p.id===dp.id);
+      if(idx>=0)S.plans[idx]={id:dp.id,name,exercises:dp.exercises};
+    }else{
+      S.plans.push({id:genId('plan'),name,exercises:dp.exercises});
+    }
+    await saveKey(KEYS.plans,S.plans);
+    S.draftPlan=null;S.screen='workout';
+    toast('התוכנית נשמרה');render();return;
+  }
+
+  /* ---- exercise picker ---- */
+  if(a==='backToEditor'){
+    S.screen='planEditor';render();return;
+  }
+  if(a==='pickerFilter'){
+    S.pickerFilter=b.dataset.m;render();return;
+  }
+  if(a==='toggleEx'&&S.draftPlan){
+    const id=b.dataset.id;
+    const idx=S.draftPlan.exercises.findIndex(e=>e.exId===id);
+    if(idx>=0)S.draftPlan.exercises.splice(idx,1);
+    else S.draftPlan.exercises.push({exId:id,sets:3});
+    render();return;
+  }
+  if(a==='openCustomForm'){
+    S.exFormDraft={name:'',muscle:MUSCLES[0],equipment:EQUIPMENTS[0],unit:UNITS[0],tip:''};
+    S.screen='customExForm';render();return;
+  }
+
+  /* ---- custom exercise form ---- */
+  if(a==='backFromCustom'){
+    S.exFormDraft=null;S.screen='exercisePicker';render();return;
+  }
+  if(a==='cfMuscle'){S.exFormDraft.muscle=b.dataset.v;render();return;}
+  if(a==='cfEquipment'){S.exFormDraft.equipment=b.dataset.v;render();return;}
+  if(a==='cfUnit'){S.exFormDraft.unit=b.dataset.v;render();return;}
+  if(a==='saveCustomEx'){
+    const d=S.exFormDraft;
+    const nm=document.getElementById('cfName');
+    const tip=document.getElementById('cfTip');
+    if(nm)d.name=nm.value;
+    if(tip)d.tip=tip.value;
+    if(!d.name.trim()){toast('הזן שם לתרגיל');return;}
+    const newEx={id:genId('custom'),name:d.name.trim(),muscle:d.muscle,
+      equipment:d.equipment,unit:d.unit,tip:d.tip.trim(),custom:true};
+    S.customExercises.push(newEx);
+    await saveKey(KEYS.customExercises,S.customExercises);
+    // auto-add to the plan being edited
+    if(S.draftPlan){S.draftPlan.exercises.push({exId:newEx.id,sets:3});}
+    S.exFormDraft=null;S.screen='exercisePicker';
+    toast('התרגיל נוסף למאגר');render();return;
+  }
+
+  /* ---- finish session ---- */
+  if(a==='finish'&&S.session){
     const ex={};let any=false;
-    EXERCISES.forEach(x=>{
-      const d=S.draft[x.id];
-      if(d&&d.some(v=>v!=='')){ex[x.id]=d.slice();any=true;}
+    S.session.exercises.forEach(slot=>{
+      const vals=S.session.values[slot.exId]||[];
+      const sliced=vals.slice(0,slot.sets);
+      if(sliced.some(v=>v!=='')){ex[slot.exId]=sliced;any=true;}
     });
     if(!any){toast('מלא לפחות תרגיל אחד');return;}
-    S.workouts.push({ts:Date.now(),ex});
-    S.draft={};S.exStep=0;
+    S.workouts.push({ts:Date.now(),planName:S.session.planName,ex});
     await saveKey(KEYS.workouts,S.workouts);
-    await saveKey(KEYS.draft,{});
+    await clearSession();
     stopTimer();
     toast('האימון נשמר 💪');
-    render();
+    S.screen='workout';render();
     return;
   }
 
@@ -836,7 +1347,31 @@ function applyTheme(){
   S.workouts=await loadKey(KEYS.workouts,[]);
   S.meas=await loadKey(KEYS.meas,[]);
   S.profile=await loadKey(KEYS.profile,{height:null});
-  S.draft=await loadKey(KEYS.draft,{});
+  S.customExercises=await loadKey(KEYS.customExercises,[]);
+  S.session=await loadKey(KEYS.session,null);
+  // seed default plan once if user has no plans yet
+  const storedPlans=await loadKey(KEYS.plans,null);
+  if(storedPlans===null){
+    S.plans=[{id:DEFAULT_PLAN.id,name:DEFAULT_PLAN.name,
+      exercises:DEFAULT_PLAN.exercises.map(e=>({...e}))}];
+    await saveKey(KEYS.plans,S.plans);
+  }else{S.plans=storedPlans;}
+  // migrate legacy draft (pre-plans schema) to a session if it had values
+  const legacy=await loadKey(KEYS.draft,null);
+  if(!S.session && legacy && typeof legacy==='object'){
+    const hasValues=Object.keys(legacy).some(k=>Array.isArray(legacy[k])&&legacy[k].some(v=>v!==''));
+    if(hasValues){
+      const exs=DEFAULT_PLAN.exercises.map(e=>({...e}));
+      const values={};
+      exs.forEach(e=>{
+        values[e.exId]=Array.isArray(legacy[e.exId])?legacy[e.exId].slice(0,e.sets):blankSets(e.sets);
+        while(values[e.exId].length<e.sets)values[e.exId].push('');
+      });
+      S.session={planName:DEFAULT_PLAN.name,exercises:exs,values,step:0};
+      await saveKey(KEYS.session,S.session);
+    }
+    await storage.delete(KEYS.draft).catch(()=>{});
+  }
   S.meas.forEach((m,i)=>{if(m._i==null)m._i=i+1;});
   applyTheme();
   render();
