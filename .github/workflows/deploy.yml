@@ -28,6 +28,7 @@ jobs:
         run: |
           mkdir -p _site
           cp koach-fitness-tracker-5.html _site/index.html
+          if [ -f preview-mannequin.html ]; then cp preview-mannequin.html _site/preview-mannequin.html; fi
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
