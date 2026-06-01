@@ -185,8 +185,11 @@
     display:flex;align-items:center;justify-content:center}
   .demo svg{width:100%;height:100%}
   /* AI preview variant: let the image set its own height (it has its own bg) */
-  .demo.preview{height:auto;background:transparent;border:none;padding:0;overflow:hidden}
+  .demo.preview{height:auto;background:transparent;border:none;padding:0;overflow:hidden;position:relative}
   .demo.preview img{display:block;width:100%;height:auto}
+  /* sprite-strip animation: horizontal strip of N equal frames */
+  .demo.preview.anim .sprite{position:absolute;inset:0;background-repeat:no-repeat;background-position:0 0}
+  @keyframes sprite-x{from{background-position-x:0%}to{background-position-x:100%}}
   .muscle-tag{position:absolute;top:8px;right:8px;background:var(--accent-dim);
     color:var(--accent-hi);font-size:11px;font-weight:800;padding:5px 10px 5px 8px;
     border-radius:8px;display:flex;align-items:center;gap:6px}
@@ -424,9 +427,10 @@ const BUILTIN_EXERCISES=[
 ];
 // IDs that have an animated SVG demo
 const DEMO_IDS=new Set(['pullup','pushup','squat','row','plank','calf']);
-// IDs that have an AI-generated preview image — wired one at a time as assets land
+// IDs that have an AI-generated preview animation — wired one at a time as assets land.
+// Each entry is a horizontal sprite strip of N equal-width frames.
 const AI_PREVIEWS={
-  squat_bw:'assets/preview/'+encodeURIComponent('סקווט.png'),
+  squat_bw:{src:'assets/preview/squat-15.jpg',frames:15,aspect:'563/512',dur:'2.4s'},
 };
 // The default plan seeded on first run — replicates the original 6-exercise workout
 const DEFAULT_PLAN={id:'default',name:'אימון גוף-מלא',
@@ -498,12 +502,16 @@ async function clearSession(){
   await storage.delete(KEYS.session).catch(()=>{});
 }
 function aiPreview(id){
-  const src=AI_PREVIEWS[id];
-  if(!src)return'';
+  const meta=AI_PREVIEWS[id];
+  if(!meta)return'';
   const ex=getEx(id);
   const muscle=ex?ex.muscle:'';
-  return `<div class="demo preview"><span class="muscle-tag">${esc(muscle)}</span>`+
-    `<img src="${src}" alt="${esc(ex?ex.name:'')}" loading="lazy"></div>`;
+  const bgSize=(meta.frames*100)+'% 100%';
+  const anim=`sprite-x ${meta.dur} steps(${meta.frames},jump-none) infinite`;
+  return `<div class="demo preview anim" style="aspect-ratio:${meta.aspect}">`+
+    `<span class="muscle-tag">${esc(muscle)}</span>`+
+    `<div class="sprite" style="background-image:url('${meta.src}');background-size:${bgSize};animation:${anim}"></div>`+
+    `</div>`;
 }
 function exVisual(id){
   if(AI_PREVIEWS[id])return aiPreview(id);
