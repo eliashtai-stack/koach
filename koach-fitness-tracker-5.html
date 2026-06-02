@@ -339,18 +339,41 @@
 
 <script>
 /* ---------------- storage ---------------- */
-const storage = window.storage || (() => {
-  const mem={};
-  return {
-    get: async k => (k in mem ? {key:k,value:mem[k]} : null),
-    set: async (k,v) => { mem[k]=v; return {key:k,value:v}; },
-    delete: async k => { delete mem[k]; return {key:k,deleted:true}; },
-  };
-})();
+// Prefer the host's window.storage (Claude Artifacts), otherwise fall back to
+// localStorage. The previous fallback was an in-memory object that lost
+// everything on page reload — that bug ate workouts, plans, measurements, etc.
+const storage = window.storage || {
+  get: async k => {
+    const v = localStorage.getItem(k);
+    return v === null ? null : {key:k, value:v};
+  },
+  set: async (k, v) => { localStorage.setItem(k, v); return {key:k, value:v}; },
+  delete: async k => { localStorage.removeItem(k); return {key:k, deleted:true}; },
+};
 const KEYS={workouts:'koach:workouts',meas:'koach:measurements',profile:'koach:profile',
   draft:'koach:draft',plans:'koach:plans',customExercises:'koach:customExercises',session:'koach:session'};
-async function loadKey(k,fb){try{const r=await storage.get(k);return r&&r.value?JSON.parse(r.value):fb;}catch(e){return fb;}}
-async function saveKey(k,v){try{await storage.set(k,JSON.stringify(v));return true;}catch(e){console.error(e);return false;}}
+async function loadKey(k,fb){
+  try{
+    const r=await storage.get(k);
+    const v=r&&r.value?JSON.parse(r.value):fb;
+    console.log(`[koach] load ${k}:`, r?'found':'empty');
+    return v;
+  }catch(e){
+    console.error(`[koach] load ${k} failed:`,e);
+    return fb;
+  }
+}
+async function saveKey(k,v){
+  try{
+    await storage.set(k,JSON.stringify(v));
+    console.log(`[koach] save ${k}: ok`);
+    return true;
+  }catch(e){
+    console.error(`[koach] save ${k} failed:`,e);
+    try{toast('שמירה נכשלה — בדוק מקום באחסון בדפדפן');}catch(_){}
+    return false;
+  }
+}
 
 /* ---------------- data ---------------- */
 const MUSCLES=['חזה','גב','רגליים','כתפיים','זרועות','ליבה'];
@@ -1271,9 +1294,10 @@ document.addEventListener('click',async e=>{
     }else{
       S.plans.push({id:genId('plan'),name,exercises:dp.exercises});
     }
-    await saveKey(KEYS.plans,S.plans);
+    const ok=await saveKey(KEYS.plans,S.plans);
     S.draftPlan=null;S.screen='workout';
-    toast('התוכנית נשמרה');render();return;
+    if(ok)toast('התוכנית נשמרה');
+    render();return;
   }
 
   /* ---- exercise picker ---- */
@@ -1380,10 +1404,14 @@ function applyTheme(){
   // seed default plan once if user has no plans yet
   const storedPlans=await loadKey(KEYS.plans,null);
   if(storedPlans===null){
+    console.log('[koach] no plans found — seeding default plan');
     S.plans=[{id:DEFAULT_PLAN.id,name:DEFAULT_PLAN.name,
       exercises:DEFAULT_PLAN.exercises.map(e=>({...e}))}];
     await saveKey(KEYS.plans,S.plans);
   }else{S.plans=storedPlans;}
+  console.log(`[koach] init via ${window.storage?'host storage':'localStorage'} — `+
+    `${S.plans.length} plans, ${S.workouts.length} workouts, `+
+    `${S.meas.length} measurements, ${S.customExercises.length} custom exercises`);
   // migrate legacy draft (pre-plans schema) to a session if it had values
   const legacy=await loadKey(KEYS.draft,null);
   if(!S.session && legacy && typeof legacy==='object'){
